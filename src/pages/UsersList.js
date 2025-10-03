@@ -17,6 +17,7 @@ import { Done as DoneIcon, Close as CloseIcon } from "@material-ui/icons";
 import SearchBar from "../components/SearchBar.js";
 import BasicTable from "../components/BasicTable.js";
 import ConfirmDialog from "../components/ConfirmDialog.js";
+import { isValidEmail } from "../utils/Utils";
 
 export default function UsersList() {
   const dispatch = useDispatch();
@@ -59,6 +60,7 @@ export default function UsersList() {
             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
             onBlur={() => setEditTouched({ ...editTouched, name: true })}
             error={editTouched.name && !editForm.name}
+            helperText={editTouched.name && !editForm.name ? "Required" : ""}
           />
         ) : (
           row.name
@@ -77,7 +79,16 @@ export default function UsersList() {
             placeholder="Email"
             onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
             onBlur={() => setEditTouched({ ...editTouched, email: true })}
-            error={editTouched.email && !editForm.email}
+            error={editTouched.email && (!editForm.email || !isValidEmail(editForm.email))}
+            helperText={
+              editTouched.email
+                ? !editForm.email
+                  ? "Required"
+                  : !isValidEmail(editForm.email)
+                  ? "Enter a valid email"
+                  : ""
+                : ""
+            }
           />
         ) : (
           row.email
@@ -106,7 +117,7 @@ export default function UsersList() {
       render: (row) => {
         if (editingId === row.id) {
           const onSave = () => {
-            const hasErrors = !editForm.name || !editForm.email;
+            const hasErrors = !editForm.name || !editForm.email || !isValidEmail(editForm.email);
             if (hasErrors) {
               setEditTouched({ name: true, email: true });
               return;
@@ -146,7 +157,6 @@ export default function UsersList() {
               size="small"
               color="default"
               onClick={() => {
-                // Enter edit mode with current row values
                 setAdding(false);
                 setEditingId(row.id);
                 setEditForm({
@@ -208,7 +218,7 @@ export default function UsersList() {
             if (!adding) return null;
             const errors = {
               name: !addForm.name ? "Required" : "",
-              email: !addForm.email ? "Required" : "",
+              email: !addForm.email ? "Required" : !isValidEmail(addForm.email) ? "Enter a valid email" : "",
             };
             const onSubmitInline = (e) => {
               e && e.preventDefault();
@@ -244,6 +254,7 @@ export default function UsersList() {
                       onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                       onBlur={() => setAddTouched({ ...addTouched, name: true })}
                       error={addTouched.name && Boolean(errors.name)}
+                      helperText={addTouched.name && errors.name}
                     />
                   </form>
                 </TableCell>
@@ -256,6 +267,7 @@ export default function UsersList() {
                     onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                     onBlur={() => setAddTouched({ ...addTouched, email: true })}
                     error={addTouched.email && Boolean(errors.email)}
+                    helperText={addTouched.email && errors.email}
                   />
                 </TableCell>
                 <TableCell>

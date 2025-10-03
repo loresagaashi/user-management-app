@@ -4,3 +4,8 @@ export function resolveField(obj, field) {
   if (!field.includes(".")) return obj[field];
   return field.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
 }
+
+export function isValidEmail(email) {
+  const s = String(email || "").trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}

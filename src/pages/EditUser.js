@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchUsers, updateUser } from "../users/fetchUser";
 import { TextField, Button, Paper, Typography } from "@material-ui/core";
+import { isValidEmail } from "../utils/Utils";
 
 export default function EditUser() {
   const { id } = useParams();
@@ -23,7 +24,7 @@ export default function EditUser() {
     company: user?.company?.name || user?.company || "",
   }));
 
-  const disabled = useMemo(() => !form.name || !form.email, [form]);
+  const disabled = useMemo(() => !form.name || !form.email || !isValidEmail(form.email), [form]);
 
   if (status === "loading") {
     return <Typography>Loading...</Typography>;
@@ -56,6 +57,8 @@ export default function EditUser() {
           margin="normal"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
+          error={Boolean(form.email) && !isValidEmail(form.email)}
+          helperText={Boolean(form.email) && !isValidEmail(form.email) ? "Enter a valid email" : ""}
         />
         <TextField
           fullWidth

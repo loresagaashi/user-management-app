@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { addLocalUser, setSort } from "../users/fetchUser";
+import { isValidEmail } from "../utils/Utils";
 import { TextField, Button, Paper } from "@material-ui/core";
 
 export default function AddUser() {
@@ -29,7 +30,11 @@ export default function AddUser() {
   const validate = (values) => {
     const errs = {};
     if (!values.name) errs.name = "Name is required";
-    if (!values.email) errs.email = "Email is required";
+    if (!values.email) {
+      errs.email = "Email is required";
+    } else if (!isValidEmail(values.email)) {
+      errs.email = "Enter a valid email";
+    }
     return errs;
   };
 

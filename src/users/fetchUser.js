@@ -1,12 +1,22 @@
 import { createAsyncThunk, createSlice, nanoid } from "@reduxjs/toolkit";
 import axios from "axios";
+import { loadLocalUsers, saveLocalUsers, loadDeletedIds, saveDeletedIds } from "../utils/storage";
 
+const initialLocalUsersRaw = loadLocalUsers() || [];
+const initialDeletedIds = loadDeletedIds();
+const initialLocalUsers = initialLocalUsersRaw
+  .map((u) => ({
+    ...u,
+    isLocal: true,
+  }))
+  .filter((u) => !initialDeletedIds.includes(String(u.id)));
 const initialState = {
-  items: [],
+  items: initialLocalUsers,
   status: "idle",
   error: null,
   search: "",
   sort: { field: "none", direction: "asc" },
+  deletedIds: initialDeletedIds,
 };
 
 export const fetchUsers = createAsyncThunk("users/fetchUsers", async () => {
@@ -26,7 +36,15 @@ const fetchUser = createSlice({
     },
     addLocalUser: {
       reducer(state, action) {
-        state.items.unshift(action.payload);
+        const newUser = {
+          ...action.payload,
+          isLocal: true,
+        };
+        if (!state.deletedIds.includes(String(newUser.id))) {
+          state.items.unshift(newUser);
+        }
+        const locals = state.items.filter((u) => u.isLocal);
+        saveLocalUsers(locals);
       },
       prepare(user) {
         return { payload: { id: nanoid(), ...user } };
@@ -37,11 +55,22 @@ const fetchUser = createSlice({
       const idx = state.items.findIndex((u) => String(u.id) === String(id));
       if (idx !== -1) {
         state.items[idx] = { ...state.items[idx], ...changes };
+        if (state.items[idx]?.isLocal) {
+          const locals = state.items.filter((u) => u.isLocal);
+          saveLocalUsers(locals);
+        }
       }
     },
     deleteUser(state, action) {
       const id = action.payload;
-      state.items = state.items.filter((u) => String(u.id) !== String(id));
+      const idStr = String(id);
+      state.items = state.items.filter((u) => String(u.id) !== idStr);
+      if (!state.deletedIds.includes(idStr)) {
+        state.deletedIds.push(idStr);
+        saveDeletedIds(state.deletedIds);
+      }
+      const locals = state.items.filter((u) => u.isLocal);
+      saveLocalUsers(locals);
     },
   },
   extraReducers: (builder) => {
@@ -52,7 +81,12 @@ const fetchUser = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload;
+        const deleted = new Set(state.deletedIds.map(String));
+        const localUsers = state.items.filter((u) => u.isLocal && !deleted.has(String(u.id)));
+        const remote = (action.payload || [])
+          .filter((ru) => !deleted.has(String(ru.id)))
+          .filter((ru) => !localUsers.some((lu) => String(lu.id) === String(ru.id)));
+        state.items = [...localUsers, ...remote];
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.status = "failed";
@@ -68,7 +102,7 @@ export const selectSearch = (state) => state.users.search;
 export const selectSort = (state) => state.users.sort;
 
 export const selectUsersFilteredSorted = (state) => {
-  const q = selectSearch(state).toLowerCase();
+  const q = (selectSearch(state) || "").toLowerCase();
   const sort = selectSort(state);
   const users = selectUsersRaw(state).filter((u) => {
     const name = (u.name || "").toLowerCase();
