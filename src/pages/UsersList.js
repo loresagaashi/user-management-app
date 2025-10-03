@@ -169,7 +169,6 @@ export default function UsersList() {
   ];
 
   const handleRequestSort = (field) => {
-    // Map UI field to slice field
     const mappedField = field === "company.name" ? "company" : field;
     const nextDir = sort.field === mappedField && sort.direction === "asc" ? "desc" : "asc";
     dispatch(setSort({ field: mappedField, direction: nextDir }));
